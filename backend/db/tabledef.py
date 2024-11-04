@@ -1,11 +1,18 @@
 from contextlib import contextmanager
+from datetime import timedelta
+
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.session import Session
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db'
+app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db' #using sqlite db
+app.secret_key = 'secret_key' #secret key
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=10) #clears session after certain amount of time
+app.config['SESSION_COOKIE_HTTPONLY'] = True # makes cookies accessible through http requests only
+app.config['SESSION_COOKIE_SECURE'] = True # secures sending of cookies
+
 db = SQLAlchemy(app)
 CORS(app)
 
