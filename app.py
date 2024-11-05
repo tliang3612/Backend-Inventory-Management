@@ -57,10 +57,10 @@ def handle_invalid_field(f):
 
 def populate_inventories(inventories_list:list[Inventory], usernames:list[str]):
     for i in range(len(inventories_list)):
-        inventories_list[i].create_item(f"{usernames[i]}'s Chips", 5, "2023-12-25", 1.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Candy",10, "2023-12-25", 2.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Soda",15, "2023-12-25", 3.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Gum", 20, "2023-12-25", 4.00)
+        inventories_list[i].create_item(f"{usernames[i]}'s Chips", 20, f"These are {usernames[i]}'s Chips", 1.00)
+        inventories_list[i].create_item(f"{usernames[i]}'s Candy",20, f"These are {usernames[i]}'s Candy", 2.00)
+        inventories_list[i].create_item(f"{usernames[i]}'s Soda",20, f"These are {usernames[i]}'s Soda", 3.00)
+        inventories_list[i].create_item(f"{usernames[i]}'s Gum", 20, f"These are {usernames[i]}'s Gum", 4.00)
 
 
 def init_users_and_inventories(existing_inventories:list[Inventory]):
@@ -89,7 +89,7 @@ def user_register():
     email = request.json["email"]
 
     if username in [x.username for x in users]:
-        return jsonify({"error": f"Username already exists for {username}"}), 409  #
+        return jsonify({"error": f"Username already exists for {username}"}), 409
 
     new_user = User(name,username, password,email)
     users.append(new_user)
@@ -110,7 +110,7 @@ def user_login():
         session.permanent = True
         session['user_id'] = user.id
         return jsonify({"user_info": user.serialize()}), 200
-    return Response("Invalid credentials", status=401)
+    return jsonify({'error' : "Invalid credentials"}), 401
 
 
 @app.route('/logout', methods=['POST'])
@@ -148,9 +148,9 @@ def get_inventory_item(inventory_id, item_id):
     try:
         target_item = target_inventory.get_item(item_id)
     except Exception as e:
-        return jsonify({'error' : str(e)}, 404)
+        return jsonify({'error' : str(e)}), 404
 
-    return jsonify({"item" : target_item.serialize() }), 200
+    return jsonify({"item" : target_item.serialize()}), 200
 
 
 @app.route('/inventory/<int:inventory_id>/<int:item_id>', methods=['PUT'])
@@ -163,8 +163,8 @@ def update_item_quantity(inventory_id, item_id):
     try:
         updated_item = target_inventory.set_item_quantity(item_id, quantity)
     except Exception as e:
-        return jsonify({'error' : str(e)}, 400)
-    return jsonify({"item " : updated_item.serialize()}, 200)
+        return jsonify({'error' : str(e)}), 400
+    return jsonify({"item " : updated_item.serialize()}), 200
 
 
 @app.route('/inventory/<int:inventory_id>', methods=['POST'])
@@ -175,13 +175,13 @@ def create_item(inventory_id):
     target_inventory = inventories[int(inventory_id)-1]
     name = request.json["item_name"]
     capacity = request.json["item_capacity"]
-    exp_date = request.json["item_exp_date"]
+    description = request.json["item_description"]
     price = request.json["item_price"]
 
     try:
-        new_item = target_inventory.create_item(name, capacity, exp_date, price)
+        new_item = target_inventory.create_item(name, capacity, description, price)
     except Exception as e:
-        return jsonify({'error' : str(e)}, 400)
+        return jsonify({'error' : str(e)}), 400
 
     return jsonify({"item" : new_item.serialize()}), 200
 
@@ -194,7 +194,7 @@ def delete_item(inventory_id, item_id):
     try:
         target_inventory.delete_item(item_id)
     except Exception as e:
-        return jsonify({'error' : str(e)}, 400)
+        return jsonify({'error' : str(e)}), 400
 
     return jsonify({'success': 'Item deleted'}), 200
 

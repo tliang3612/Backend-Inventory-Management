@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import timedelta
+import secrets
 
 from flask import Flask
 from flask_cors import CORS
@@ -8,8 +9,8 @@ from flask_sqlalchemy.session import Session
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db' #using sqlite db
-app.secret_key = 'secret_key' #secret key
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=10) #clears session after certain amount of time
+app.config['SECRET_KEY'] = secrets.token_hex(32)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) #clears session after certain amount of time
 app.config['SESSION_COOKIE_HTTPONLY'] = True # makes cookies accessible through http requests only
 app.config['SESSION_COOKIE_SECURE'] = True # secures sending of cookies
 
@@ -46,10 +47,9 @@ class ItemModel(db.Model):
     name = db.Column("name", db.String)
     quantity = db.Column("quantity", db.Integer)
     capacity = db.Column("capacity", db.Integer)
-    exp_date = db.Column("exp_date", db.String)
+    description = db.Column("description", db.String)
     price = db.Column("price", db.Float)
-    inventory_id = db.Column(
-        db.Integer, db.ForeignKey("inventory.inventory_id"))
+    inventory_id = db.Column(db.Integer, db.ForeignKey("inventory.inventory_id"))
     inventory = db.relationship("InventoryModel", back_populates="items")
 
 

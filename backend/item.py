@@ -4,7 +4,7 @@ from backend.db.tabledef import db_session
 
 
 class Item:
-    def __init__(self, name: str, capacity: int, exp_date: str, price: float, inventory_id: int, id=-1):
+    def __init__(self, name: str, capacity: int, description: str, price: float, inventory_id: int, id=-1):
         if price < 0:
             raise InvalidPriceException(price, name)
 
@@ -15,7 +15,7 @@ class Item:
         self.quantity = capacity
         self.capacity = capacity
         self.price = price
-        self.expiration_date = exp_date
+        self.description = description
         self.inventory_id = inventory_id
 
         if id == -1:
@@ -26,7 +26,7 @@ class Item:
                     raise DuplicateItemException(name)
 
                 u = tabledef.ItemModel(name=self.name, quantity=self.quantity, capacity=self.capacity,
-                                       exp_date=self.expiration_date, price=self.price,
+                                       description=self.description, price=self.price,
                                        inventory_id=self.inventory_id)
                 s.add(u)
                 s.commit()
@@ -71,9 +71,8 @@ class Item:
         return {'id': self.id,
                 'name': self.name,
                 'quantity': self.quantity,
-                'capacity': self.capacity,
                 'price': self.price,
-                'exp_date': self.expiration_date}
+                'description': self.description}
 
     def get_name(self) -> str:
         return self.name
@@ -87,5 +86,5 @@ class Item:
     def get_price(self) -> float:
         return self.price
 
-    def check_expired(self) -> bool:
-        pass
+    def get_description(self) -> str:
+        return self.description

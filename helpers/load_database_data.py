@@ -27,7 +27,7 @@ def get_items_dict(s, db_inventory) ->dict[int, Item]:
     db_items = s.query(ItemModel).filter(ItemModel.inventory_id == db_inventory.inventory_id).all()
 
     for db_item in db_items:
-        item = Item(db_item.name, db_item.capacity, db_item.exp_date,
+        item = Item(db_item.name, db_item.capacity, db_item.description,
                     db_item.price, db_item.inventory_id, id=db_item.item_id)
         items_dict[item.id] = item
     return items_dict

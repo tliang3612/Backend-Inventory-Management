@@ -33,8 +33,8 @@ class Inventory:
             self.id = id
 
     # mutators
-    def create_item(self, name: str, capacity: int, exp_date: str, price: float):
-        new_item = Item(name, capacity, exp_date, price, self.id)
+    def create_item(self, name: str, capacity: int, description: str, price: float):
+        new_item = Item(name, capacity, description, price, self.id)
         self.items_dict[new_item.id] = new_item
 
         return new_item
@@ -78,12 +78,9 @@ class Inventory:
     def get_item(self, item_id: int) -> Item:
         return self.items_dict[item_id]
 
-    def get_expired_items(self) -> list[Item]:
-        expired = []
-        for item in self.items_dict.values():
-            if item.check_expired():
-                expired.append(item)
-        return expired
+    def get_item_description(self, item_id:int) -> Item:
+        return self.items_dict[item_id].get
+
 
 
 
