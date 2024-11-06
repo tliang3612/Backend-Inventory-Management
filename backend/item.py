@@ -5,10 +5,10 @@ from backend.db.tabledef import db_session
 
 class Item:
     def __init__(self, name: str, capacity: int, description: str, price: float, inventory_id: int, id=-1):
-        if price < 0:
+        if not isinstance(price, (int, float)) or price < 0:
             raise InvalidPriceException(price, name)
 
-        if capacity <= 0:
+        if not isinstance(price, (int, float)) or capacity <= 0:
             raise InvalidQuantityException(capacity, name)
 
         self.name = name

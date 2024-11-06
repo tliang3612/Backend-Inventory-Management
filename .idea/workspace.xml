@@ -5,13 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f07cc1a1-2508-4806-8479-6356215c680b" name="Changes" comment="Initial Commit with functioning CRUD operations for inventory">
-      <change beforePath="$PROJECT_DIR$/.idea/Backend Inventory Management.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Backend Inventory Management.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/db/instance/mydb.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/db/tabledef.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/db/tabledef.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/instance/mydb.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/item.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/item.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

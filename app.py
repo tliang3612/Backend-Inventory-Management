@@ -1,9 +1,11 @@
-from sqlalchemy.orm.sync import populate
+import datetime
+import re
 
+import jwt
 from backend.db.tabledef import app
 from helpers.load_database_data import load_inventories_from_db
 from backend.inventory import Inventory
-from flask import request, jsonify, session
+from flask import request, jsonify, session, make_response
 from functools import wraps
 
 
@@ -17,7 +19,8 @@ class User:
         self.id = self.inventory.id
 
     def serialize(self):
-        return {'name': self.name,
+        return {
+                'name': self.name,
                 'id': self.id,
                 'email': self.email,
                 'inventory': self.inventory.serialize()
@@ -27,6 +30,8 @@ class User:
 def handle_invalid_inventory(f):
     @wraps(f)
     def decorator(inventory_id, *args, **kwargs):
+        if not isinstance(inventory_id, int):
+            return jsonify({'error': f'Inventory id of {inventory_id} must be an integer'}), 404
         if not (0 <= inventory_id - 1 < len(inventories)):
             return jsonify({'error': f'No inventory exists with ID {inventory_id}'}), 404
         return f(inventory_id, *args, **kwargs)
@@ -98,6 +103,14 @@ def user_register():
     name = request.json["name"]
     email = request.json["email"]
 
+    email_regex = r".+@.+\..+" # .+ -> one or more chars
+                               # @ -> @ symbol
+                               # .+\. -> one or more char follows @, then dot
+                               # .+ -> one or more char after .
+
+    if not re.match(email_regex, email):
+        return jsonify({"error": "bad email"}), 400
+
     if username in [x.username for x in users]:
         return jsonify({"error": f"Username already exists for {username}"}), 409
 
@@ -105,7 +118,6 @@ def user_register():
     users.append(new_user)
 
     return jsonify({"user_info": new_user.serialize()}), 201
-
 
 @app.route('/login', methods=['POST'])
 @handle_invalid_field
@@ -116,19 +128,40 @@ def user_login():
     matching_users = [x for x in users if x.username == username]
     user = matching_users[0] if matching_users else None
 
+
     if user and user.password == password:
         session.permanent = True
         session['user_id'] = user.id
-        return jsonify({"user_info": user.serialize()}), 200
+        token = jwt.encode(
+            {
+                #payload
+                'iss': "https://inventory-management.com",
+                'aud': "inventory-management-client",
+                'sub': user.id,
+                'user_id': user.id,
+                'exp': datetime.datetime.now() + datetime.timedelta(hours=1)
+            },
+            app.config['SECRET_KEY'], #signature
+            algorithm="HS256" #head
+        )
+
+        response = make_response(jsonify({"login message": "Login successful"}))
+        response.set_cookie(
+            'auth_token',token,
+            httponly=True, secure=True,
+            samesite='Strict', max_age=1800
+        )
+        return response, 200
     return jsonify({'error': "Invalid credentials"}), 401
 
 
 @app.route('/logout', methods=['POST'])
 def user_logout():
     temp_user_id = session['user_id']
+    response = make_response(jsonify({"message": f"Successfully logged out user of id {temp_user_id}"}))
+    response.delete_cookie('auth_token')
     session.clear()  # remove session data and log out the user
-    return jsonify({"logout message": f"Logged out user with id of {temp_user_id}"}), 200
-
+    return response, 200
 
 # ---------------------- Inventory Stuff -----------------------------#
 
