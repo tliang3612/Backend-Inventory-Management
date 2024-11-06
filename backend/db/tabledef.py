@@ -17,7 +17,6 @@ app.config['SESSION_COOKIE_SECURE'] = True # secures sending of cookies
 db = SQLAlchemy(app)
 CORS(app)
 
-
 @contextmanager
 def db_session():
     with app.app_context():
@@ -51,7 +50,6 @@ class ItemModel(db.Model):
     price = db.Column("price", db.Float)
     inventory_id = db.Column(db.Integer, db.ForeignKey("inventory.inventory_id"))
     inventory = db.relationship("InventoryModel", back_populates="items")
-
 
 
 with app.app_context():

@@ -1,27 +1,26 @@
+from sqlalchemy.orm.sync import populate
+
 from backend.db.tabledef import app
 from helpers.load_database_data import load_inventories_from_db
 from backend.inventory import Inventory
-from flask import Flask, Response, request, jsonify, session
+from flask import request, jsonify, session
 from functools import wraps
 
+
 class User:
-    def __init__(self, name, user_name, password, email, inventory :list[Inventory] = None, index = 0):
+    def __init__(self, name, user_name, password, email, inventory):
         self.name = name
         self.username = user_name
         self.password = password
         self.email = email
-        try:
-            self.inventory = inventory[index]
-        except Exception:
-            self.inventory = Inventory()
-            print(f'Inventory doesnt exist yet for {name}. Creating inventory with id: {self.inventory.id}')
+        self.inventory = inventory
         self.id = self.inventory.id
 
     def serialize(self):
-        return {'name' : self.name,
-                'id' : self.id,
-                'email' : self.email,
-                'inventory' : self.inventory.serialize()
+        return {'name': self.name,
+                'id': self.id,
+                'email': self.email,
+                'inventory': self.inventory.serialize()
                 }
 
 
@@ -31,6 +30,7 @@ def handle_invalid_inventory(f):
         if not (0 <= inventory_id - 1 < len(inventories)):
             return jsonify({'error': f'No inventory exists with ID {inventory_id}'}), 404
         return f(inventory_id, *args, **kwargs)
+
     return decorator
 
 
@@ -42,6 +42,7 @@ def handle_user_authentication(f):
         if session.get('user_id') != inventory_id:
             return jsonify({"error": "Unauthorized access to inventory"}), 403
         return f(inventory_id, *args, **kwargs)
+
     return decorator
 
 
@@ -52,29 +53,38 @@ def handle_invalid_field(f):
             return f(*args, **kwargs)
         except KeyError as e:
             return jsonify({"error": f"Missing required field: {e.args[0]}"}), 400
+
     return decorator
 
 
-def populate_inventories(inventories_list:list[Inventory], usernames:list[str]):
-    for i in range(len(inventories_list)):
-        inventories_list[i].create_item(f"{usernames[i]}'s Chips", 20, f"These are {usernames[i]}'s Chips", 1.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Candy",20, f"These are {usernames[i]}'s Candy", 2.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Soda",20, f"These are {usernames[i]}'s Soda", 3.00)
-        inventories_list[i].create_item(f"{usernames[i]}'s Gum", 20, f"These are {usernames[i]}'s Gum", 4.00)
+def create_user_and_inventory(name, username, password, email, existing_inventories, should_populate=False, index = -1):
+    if index == -1 or index >= len(existing_inventories):
+        inventory = Inventory()
+        existing_inventories.append(inventory)  # Append the new inventory
+        if should_populate:
+            populate_inventory(inventory, name)
+        print(f"Inventory doesn't exist for {name}. Created a new inventory with ID: {inventory.id}")
+    else:
+        inventory = existing_inventories[index]
+    return User(name, username, password, email, inventory)
+
+def populate_inventory(inventory: Inventory, name: str):
+    inventory.create_item(f"{name}'s Chips", 20, f"These are {name}'s Chips", 1.00)
+    inventory.create_item(f"{name}'s Candy", 20, f"These are {name}'s Candy", 2.00)
+    inventory.create_item(f"{name}'s Soda", 20, f"These are {name}'s Soda", 3.00)
+    inventory.create_item(f"{name}'s Gum", 20, f"These are {name}'s Gum", 4.00)
 
 
-def init_users_and_inventories(existing_inventories:list[Inventory]):
+def init_users_and_inventories(existing_inventories: list[Inventory]):
+    names = ["John", "Jane", "Bob"]
+    created_users = []
     # each user's id will correspond to their associated inventory
-    users = [User("John", "John22", "john_password", "john_email", existing_inventories, 0),
-             User("Jane", "Jane22", "jane_password", "jane_email", existing_inventories, 1),
-             User("Bob", "Bob22", "bob_password", "bob_email", existing_inventories, 2)]
+    for i in range(len(names)):
+        user = create_user_and_inventory(names[i], f'{names[i]}22', f'{names[i]}_password',
+                                         f'{names[i]}_email', existing_inventories, True, i)
+        created_users.append(user)
 
-    if not existing_inventories:
-        populate_inventories([x.inventory for x in users], [x.name for x in users])
-    return users
-
-inventories = load_inventories_from_db()
-users = init_users_and_inventories(inventories)
+    return created_users
 
 
 # ----------------- User Authentication -------------------------------------------- #
@@ -91,7 +101,7 @@ def user_register():
     if username in [x.username for x in users]:
         return jsonify({"error": f"Username already exists for {username}"}), 409
 
-    new_user = User(name,username, password,email)
+    new_user = create_user_and_inventory(name, username, password, email, inventories, False)
     users.append(new_user)
 
     return jsonify({"user_info": new_user.serialize()}), 201
@@ -110,16 +120,17 @@ def user_login():
         session.permanent = True
         session['user_id'] = user.id
         return jsonify({"user_info": user.serialize()}), 200
-    return jsonify({'error' : "Invalid credentials"}), 401
+    return jsonify({'error': "Invalid credentials"}), 401
 
 
 @app.route('/logout', methods=['POST'])
 def user_logout():
     temp_user_id = session['user_id']
-    session.clear() # remove session data and log out the user
+    session.clear()  # remove session data and log out the user
     return jsonify({"logout message": f"Logged out user with id of {temp_user_id}"}), 200
 
-#---------------------- Inventory Stuff -----------------------------#
+
+# ---------------------- Inventory Stuff -----------------------------#
 
 @app.route('/inventory', methods=['GET'])
 def get_inventory_ids():
@@ -129,14 +140,14 @@ def get_inventory_ids():
     return inventory_ids
 
 
-#------------------------ Items Stuff --------------------------------#
+# ------------------------ Items Stuff --------------------------------#
 
 
 @app.route('/inventory/<int:inventory_id>', methods=['GET'])
 @handle_user_authentication
 @handle_invalid_inventory
 def get_all_inventory_items(inventory_id):
-    target_inventory = inventories[int(inventory_id)-1]
+    target_inventory = inventories[int(inventory_id) - 1]
     return target_inventory.serialize()
 
 
@@ -144,13 +155,13 @@ def get_all_inventory_items(inventory_id):
 @handle_user_authentication
 @handle_invalid_inventory
 def get_inventory_item(inventory_id, item_id):
-    target_inventory = inventories[int(inventory_id)-1]
+    target_inventory = inventories[int(inventory_id) - 1]
     try:
         target_item = target_inventory.get_item(item_id)
     except Exception as e:
-        return jsonify({'error' : str(e)}), 404
+        return jsonify({'error': str(e)}), 404
 
-    return jsonify({"item" : target_item.serialize()}), 200
+    return jsonify({"item": target_item.serialize()}), 200
 
 
 @app.route('/inventory/<int:inventory_id>/<int:item_id>', methods=['PUT'])
@@ -158,13 +169,13 @@ def get_inventory_item(inventory_id, item_id):
 @handle_invalid_inventory
 @handle_invalid_field
 def update_item_quantity(inventory_id, item_id):
-    target_inventory = inventories[int(inventory_id)-1]
+    target_inventory = inventories[int(inventory_id) - 1]
     quantity = request.json["item_quantity"]
     try:
         updated_item = target_inventory.set_item_quantity(item_id, quantity)
     except Exception as e:
-        return jsonify({'error' : str(e)}), 400
-    return jsonify({"item " : updated_item.serialize()}), 200
+        return jsonify({'error': str(e)}), 400
+    return jsonify({"item ": updated_item.serialize()}), 200
 
 
 @app.route('/inventory/<int:inventory_id>', methods=['POST'])
@@ -172,7 +183,7 @@ def update_item_quantity(inventory_id, item_id):
 @handle_invalid_inventory
 @handle_invalid_field
 def create_item(inventory_id):
-    target_inventory = inventories[int(inventory_id)-1]
+    target_inventory = inventories[int(inventory_id) - 1]
     name = request.json["item_name"]
     capacity = request.json["item_capacity"]
     description = request.json["item_description"]
@@ -181,24 +192,27 @@ def create_item(inventory_id):
     try:
         new_item = target_inventory.create_item(name, capacity, description, price)
     except Exception as e:
-        return jsonify({'error' : str(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
-    return jsonify({"item" : new_item.serialize()}), 200
+    return jsonify({"item": new_item.serialize()}), 200
 
 
 @app.route('/inventory/<int:inventory_id>/<int:item_id>', methods=['DELETE'])
 @handle_user_authentication
 @handle_invalid_inventory
 def delete_item(inventory_id, item_id):
-    target_inventory = inventories[int(inventory_id)-1]
+    target_inventory = inventories[int(inventory_id) - 1]
     try:
         target_inventory.delete_item(item_id)
     except Exception as e:
-        return jsonify({'error' : str(e)}), 400
+        return jsonify({'error': str(e)}), 400
 
     return jsonify({'success': 'Item deleted'}), 200
 
 
 # ======== Main ============================================================== #
 if __name__ == "__main__":
+    inventories = load_inventories_from_db()
+    existing_inventories = inventories
+    users = init_users_and_inventories(existing_inventories)
     app.run(debug=True, use_reloader=False, port=5000)
