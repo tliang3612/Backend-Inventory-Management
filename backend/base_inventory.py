@@ -1,6 +1,5 @@
-from backend.db import tabledef
-from backend.db.tabledef import db_session
-from backend.item import Item
+from abc import abstractmethod
+
 from helpers.error_handling import ItemNotFoundException
 
 
@@ -13,31 +12,18 @@ def handle_invalid_item(f):
     return decorator
 
 
-class Inventory:
-    # do not put entry for id unless the id is a known inventory in the database
-    def __init__(self, items_dict: dict[int, Item] = None, id: int = -1):
-
+class BaseInventory:
+    def __init__(self, items_dict=None, id=None):
         if items_dict is None:
-            self.items_dict = dict[int, Item]()
+            self.items_dict = {}
         else:
             self.items_dict = items_dict
 
-        # create new table entry
-        if id == -1:
-            with db_session() as s:
-                u = tabledef.InventoryModel()
-                s.add(u)
-                s.commit()
-                self.id = u.inventory_id
-        else:
-            self.id = id
+        self.id = id
 
-    # mutators
-    def create_item(self, name: str, capacity: int, description: str, price: float):
-        new_item = Item(name, capacity, description, price, self.id)
-        self.items_dict[new_item.id] = new_item
-
-        return new_item
+    @abstractmethod
+    def create_item(self, name: str, capacity: int, quantity: int,  description: str, price: float):
+        pass
 
     @handle_invalid_item
     def set_item_quantity(self, item_id: int, quantity: int):
@@ -54,12 +40,11 @@ class Inventory:
             item.delete()
         return item
 
-    # converts the inventory dictionary to json format
     def serialize(self):
-        inventory_json = {'items': [],'id':self.id}
+        inventory_json = {"id": self.id, "items": []}
         for item in self.items_dict.values():
             item_json = item.serialize()
-            inventory_json['items'].append(item_json)
+            inventory_json["items"].append(item_json)
         return inventory_json
 
     @handle_invalid_item
@@ -75,14 +60,9 @@ class Inventory:
         return self.items_dict[item_id].get_name()
 
     @handle_invalid_item
-    def get_item(self, item_id: int) -> Item:
+    def get_item(self, item_id: int):
         return self.items_dict[item_id]
 
-    def get_item_description(self, item_id:int) -> Item:
-        return self.items_dict[item_id].get
-
-
-
-
-
-
+    @handle_invalid_item
+    def get_item_description(self, item_id: int) -> str:
+        return self.items_dict[item_id].get_description()
