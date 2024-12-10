@@ -5,7 +5,9 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.session import Session
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db' #using sqlite db
+# app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db' #using sqlite db
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://root:miles@localhost/mydb'
+
 sql_db = SQLAlchemy(app)
 CORS(app)
 
@@ -35,10 +37,10 @@ class ItemModel(sql_db.Model):
     __tablename__ = "item"
 
     item_id = sql_db.Column(sql_db.Integer, primary_key=True)
-    name = sql_db.Column("name", sql_db.String)
+    name = sql_db.Column("name", sql_db.String(80))
     quantity = sql_db.Column("quantity", sql_db.Integer)
     capacity = sql_db.Column("capacity", sql_db.Integer)
-    description = sql_db.Column("description", sql_db.String)
+    description = sql_db.Column("description", sql_db.String(80))
     price = sql_db.Column("price", sql_db.Float)
     inventory_id = sql_db.Column(sql_db.Integer, sql_db.ForeignKey("inventory.inventory_id"))
     inventory = sql_db.relationship("InventoryModel", back_populates="items")
