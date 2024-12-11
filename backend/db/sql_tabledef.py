@@ -5,7 +5,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.session import Session
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///mydb.db' #using sqlite db
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://root:password@localhost/mydb' #password will be different for each host computer. Set to your mysql db password
 sql_db = SQLAlchemy(app)
 CORS(app)
 
